@@ -1,0 +1,2 @@
+bob:secret
+charlie:pass123

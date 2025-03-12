@@ -1,5 +1,4 @@
 package org.emp.gl;
-
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -11,6 +10,7 @@ public class POP3ClientHandler implements Runnable {
     private String currentUser;
     private List<File> emailFiles; // Liste des emails dans le répertoire utilisateur
     private Set<Integer> deletedMessages; // Indices des messages marqués pour suppression
+    private boolean authenticated = false;
 
     public POP3ClientHandler(Socket socket) {
         this.socket = socket;
@@ -26,7 +26,6 @@ public class POP3ClientHandler implements Runnable {
             // Envoi du message de bienvenue
             out.println("+OK POP3 server ready");
 
-            boolean authenticated = false;
             String line;
             while ((line = in.readLine()) != null) {
                 System.out.println("POP3 Received: " + line);
@@ -52,10 +51,16 @@ public class POP3ClientHandler implements Runnable {
                     case "PASS":
                         if (currentUser == null) {
                             out.println("-ERR USER required before PASS");
+                        } else if (tokens.length < 2) {
+                            out.println("-ERR Missing password");
                         } else {
-                            // Pour simplifier, on accepte tout mot de passe
-                            authenticated = true;
-                            out.println("+OK Password accepted");
+                            String password = tokens[1];
+                            if (authenticateUser(currentUser, password)) {
+                                authenticated = true;
+                                out.println("+OK Password accepted");
+                            } else {
+                                out.println("-ERR Invalid password");
+                            }
                         }
                         break;
 
@@ -190,5 +195,32 @@ public class POP3ClientHandler implements Runnable {
             emailFiles.addAll(Arrays.asList(files));
         }
     }
-}
 
+    // Vérifie l'authentification en lisant le fichier "users.txt"
+    private boolean authenticateUser(String username, String password) {
+        File file = new File("src/main/resources/user.txt");
+        if (!file.exists()) {
+            System.err.println("Fichier users.txt introuvable pour l'authentification.");
+            return false;
+        }
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            // Chaque ligne doit être au format "username:password"
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                String[] parts = line.split(":");
+                if (parts.length == 2) {
+                    String fileUser = parts[0].trim();
+                    String filePass = parts[1].trim();
+                    if (fileUser.equals(username) && filePass.equals(password)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+}
