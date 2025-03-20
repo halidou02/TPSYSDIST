@@ -11,10 +11,8 @@ public class POP3Server implements Runnable {
         this.port = port;
     }
 
-    @Override
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("POP3 Server started on port " + port);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 new Thread(new POP3ClientHandler(clientSocket)).start();

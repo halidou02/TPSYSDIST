@@ -1,4 +1,5 @@
 package org.emp.gl;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -7,13 +8,14 @@ public class POP3ClientHandler implements Runnable {
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
+    private POP3State state;
     private String currentUser;
-    private List<File> emailFiles; // Liste des emails dans le répertoire utilisateur
-    private Set<Integer> deletedMessages; // Indices des messages marqués pour suppression
-    private boolean authenticated = false;
+    private List<File> emailFiles;
+    private Set<Integer> deletedMessages;
 
     public POP3ClientHandler(Socket socket) {
         this.socket = socket;
+        this.state = POP3State.AUTHORIZATION;
         this.deletedMessages = new HashSet<>();
     }
 
@@ -22,19 +24,17 @@ public class POP3ClientHandler implements Runnable {
         try {
             in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
-
-            // Envoi du message de bienvenue
             out.println("+OK POP3 server ready");
 
             String line;
             while ((line = in.readLine()) != null) {
-                System.out.println("POP3 Received: " + line);
                 String[] tokens = line.split(" ");
                 String command = tokens[0].toUpperCase();
-
                 switch (command) {
                     case "USER":
-                        if (tokens.length < 2) {
+                        if (state != POP3State.AUTHORIZATION) {
+                            out.println("-ERR Command not allowed in current state");
+                        } else if (tokens.length < 2) {
                             out.println("-ERR Missing username");
                         } else {
                             String user = tokens[1];
@@ -47,26 +47,24 @@ public class POP3ClientHandler implements Runnable {
                             }
                         }
                         break;
-
                     case "PASS":
-                        if (currentUser == null) {
+                        if (state != POP3State.AUTHORIZATION || currentUser == null) {
                             out.println("-ERR USER required before PASS");
                         } else if (tokens.length < 2) {
                             out.println("-ERR Missing password");
                         } else {
                             String password = tokens[1];
                             if (authenticateUser(currentUser, password)) {
-                                authenticated = true;
+                                state = POP3State.TRANSACTION;
                                 out.println("+OK Password accepted");
                             } else {
                                 out.println("-ERR Invalid password");
                             }
                         }
                         break;
-
                     case "STAT":
-                        if (!authenticated) {
-                            out.println("-ERR Not authenticated");
+                        if (state != POP3State.TRANSACTION) {
+                            out.println("-ERR Not in transaction state");
                         } else {
                             int count = emailFiles.size() - deletedMessages.size();
                             int totalSize = 0;
@@ -78,12 +76,11 @@ public class POP3ClientHandler implements Runnable {
                             out.println("+OK " + count + " " + totalSize);
                         }
                         break;
-
                     case "LIST":
-                        if (!authenticated) {
-                            out.println("-ERR Not authenticated");
+                        if (state != POP3State.TRANSACTION) {
+                            out.println("-ERR Not in transaction state");
                         } else {
-                            out.println("+OK Listing messages:");
+                            out.println("+OK Listing messages");
                             for (int i = 0; i < emailFiles.size(); i++) {
                                 if (!deletedMessages.contains(i)) {
                                     out.println((i + 1) + " " + emailFiles.get(i).length());
@@ -92,10 +89,9 @@ public class POP3ClientHandler implements Runnable {
                             out.println(".");
                         }
                         break;
-
                     case "RETR":
-                        if (!authenticated) {
-                            out.println("-ERR Not authenticated");
+                        if (state != POP3State.TRANSACTION) {
+                            out.println("-ERR Not in transaction state");
                         } else if (tokens.length < 2) {
                             out.println("-ERR Missing message number");
                         } else {
@@ -119,10 +115,9 @@ public class POP3ClientHandler implements Runnable {
                             }
                         }
                         break;
-
                     case "DELE":
-                        if (!authenticated) {
-                            out.println("-ERR Not authenticated");
+                        if (state != POP3State.TRANSACTION) {
+                            out.println("-ERR Not in transaction state");
                         } else if (tokens.length < 2) {
                             out.println("-ERR Missing message number");
                         } else {
@@ -139,23 +134,23 @@ public class POP3ClientHandler implements Runnable {
                             }
                         }
                         break;
-
                     case "RSET":
-                        if (!authenticated) {
-                            out.println("-ERR Not authenticated");
+                        if (state != POP3State.TRANSACTION) {
+                            out.println("-ERR Not in transaction state");
                         } else {
                             deletedMessages.clear();
                             out.println("+OK Deletion marks removed");
                         }
                         break;
-
                     case "NOOP":
-                        out.println("+OK");
+                        if (state != POP3State.TRANSACTION) {
+                            out.println("-ERR Not in transaction state");
+                        } else {
+                            out.println("+OK");
+                        }
                         break;
-
                     case "QUIT":
-                        if (authenticated) {
-                            // Appliquer les suppressions marquées
+                        if (state == POP3State.TRANSACTION) {
                             for (Integer index : deletedMessages) {
                                 File email = emailFiles.get(index);
                                 if (email.exists()) {
@@ -163,9 +158,9 @@ public class POP3ClientHandler implements Runnable {
                                 }
                             }
                         }
+                        state = POP3State.UPDATE;
                         out.println("+OK Goodbye");
-                        return; // Fin de la session
-
+                        return;
                     default:
                         out.println("-ERR Command not recognized");
                         break;
@@ -178,25 +173,21 @@ public class POP3ClientHandler implements Runnable {
         }
     }
 
-    // Vérifie l'existence du répertoire utilisateur dans "mailserver/"
     private boolean checkUserExists(String user) {
         File userDir = new File("mailserver/" + user);
         return userDir.exists() && userDir.isDirectory();
     }
 
-    // Charge la liste des emails présents dans le répertoire de l'utilisateur
     private void loadEmails() {
         emailFiles = new ArrayList<>();
         File userDir = new File("mailserver/" + currentUser);
         File[] files = userDir.listFiles();
         if (files != null) {
-            // Tri par nom (supposé être un timestamp)
-            Arrays.sort(files, (f1, f2) -> f1.getName().compareTo(f2.getName()));
+            Arrays.sort(files, Comparator.comparing(File::getName));
             emailFiles.addAll(Arrays.asList(files));
         }
     }
 
-    // Vérifie l'authentification en lisant le fichier "users.txt"
     private boolean authenticateUser(String username, String password) {
         File file = new File("src/main/resources/user.txt");
         if (!file.exists()) {
@@ -205,7 +196,6 @@ public class POP3ClientHandler implements Runnable {
         }
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
-            // Chaque ligne doit être au format "username:password"
             while ((line = br.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;

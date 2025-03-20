@@ -17,7 +17,7 @@ public class SMTPClientHandler implements Runnable {
 
     public SMTPClientHandler(Socket socket) {
         this.socket = socket;
-        this.state = SMTPState.INIT;
+        this.state = SMTPState.START;
         this.recipients = new ArrayList<>();
         this.dataBuffer = new StringBuilder();
     }
@@ -27,31 +27,33 @@ public class SMTPClientHandler implements Runnable {
             in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
 
-            // Envoi du message de bienvenue (code 220)
             out.println("220 Welcome to Java SMTP Server");
 
             String line;
             while ((line = in.readLine()) != null) {
-                System.out.println("Received: " + line);
-
-                if (line.toUpperCase().startsWith("HELO") || line.toUpperCase().startsWith("EHLO")) {
-                    state = SMTPState.GREETED;
-                    out.println("250 Hello");
-                } else if (line.toUpperCase().startsWith("MAIL FROM:")) {
-                    if (state == SMTPState.GREETED) {
+                String upperLine = line.toUpperCase();
+                if (upperLine.startsWith("HELO") || upperLine.startsWith("EHLO")) {
+                    if (state == SMTPState.START || state == SMTPState.MESSAGE_RECEIVED) {
+                        state = SMTPState.HELO_RECEIVED;
+                        out.println("250 Hello");
+                    } else {
+                        out.println("503 Bad sequence of commands");
+                    }
+                } else if (upperLine.startsWith("MAIL FROM:")) {
+                    if (state == SMTPState.HELO_RECEIVED) {
                         String sender = line.substring(10).trim();
                         if (!isValidEmail(sender)) {
                             out.println("501 Syntax error in parameters or arguments");
                             continue;
                         }
                         mailFrom = sender;
-                        state = SMTPState.MAIL_RECEIVED;
+                        state = SMTPState.MAIL_FROM;
                         out.println("250 OK");
                     } else {
                         out.println("503 Bad sequence of commands");
                     }
-                } else if (line.toUpperCase().startsWith("RCPT TO:")) {
-                    if (state == SMTPState.MAIL_RECEIVED || state == SMTPState.RCPT_RECEIVED) {
+                } else if (upperLine.startsWith("RCPT TO:")) {
+                    if (state == SMTPState.MAIL_FROM || state == SMTPState.RCPT_TO_RECEIVED) {
                         String recipient = line.substring(8).trim();
                         if (!isValidEmail(recipient)) {
                             out.println("501 Syntax error in parameters or arguments");
@@ -59,7 +61,7 @@ public class SMTPClientHandler implements Runnable {
                         }
                         if (checkUserExists(recipient)) {
                             recipients.add(recipient);
-                            state = SMTPState.RCPT_RECEIVED;
+                            state = SMTPState.RCPT_TO_RECEIVED;
                             out.println("250 OK");
                         } else {
                             out.println("550 No such user here");
@@ -67,10 +69,10 @@ public class SMTPClientHandler implements Runnable {
                     } else {
                         out.println("503 Bad sequence of commands");
                     }
-                } else if (line.toUpperCase().startsWith("DATA")) {
-                    if (state == SMTPState.RCPT_RECEIVED) {
+                } else if (upperLine.startsWith("DATA")) {
+                    if (state == SMTPState.RCPT_TO_RECEIVED) {
                         out.println("354 End data with <CR><LF>.<CR><LF>");
-                        state = SMTPState.RECEIVING_DATA;
+                        state = SMTPState.DATA;
                         while ((line = in.readLine()) != null) {
                             if (line.equals(".")) {
                                 break;
@@ -79,14 +81,15 @@ public class SMTPClientHandler implements Runnable {
                         }
                         saveEmail(mailFrom, recipients, dataBuffer.toString());
                         out.println("250 OK: Message accepted");
-                        state = SMTPState.GREETED;
+                        state = SMTPState.MESSAGE_RECEIVED;
                         mailFrom = null;
                         recipients.clear();
                         dataBuffer.setLength(0);
                     } else {
                         out.println("503 Bad sequence of commands");
                     }
-                } else if (line.toUpperCase().startsWith("QUIT")) {
+                } else if (upperLine.startsWith("QUIT")) {
+                    state = SMTPState.QUIT_RECEIVED;
                     out.println("221 Bye");
                     break;
                 } else {
@@ -100,14 +103,12 @@ public class SMTPClientHandler implements Runnable {
         }
     }
 
-    // Vérifie l'existence d'un répertoire pour l'utilisateur (extraction du nom avant '@')
     private boolean checkUserExists(String email) {
         String user = email.split("@")[0];
         File userDir = new File("mailserver/" + user);
         return userDir.exists() && userDir.isDirectory();
     }
 
-    // Sauvegarde l'email dans le dossier de chaque destinataire sous "timestamp.txt"
     private void saveEmail(String mailFrom, List<String> recipients, String data) {
         String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         for (String recipient : recipients) {
@@ -119,7 +120,7 @@ public class SMTPClientHandler implements Runnable {
             File emailFile = new File(userDir, timestamp + ".txt");
             try (FileWriter fw = new FileWriter(emailFile)) {
                 fw.write("From: " + mailFrom + "\r\n");
-                fw.write("To: " + String.join(", ", recipients) + "\r\n");
+                fw.write("To: " + String.join(", ", recipients) + "\r\n\r\n");
                 fw.write(data);
                 System.out.println("Email saved for " + recipient + " in file: " + emailFile.getPath());
             } catch (IOException e) {
@@ -128,7 +129,6 @@ public class SMTPClientHandler implements Runnable {
         }
     }
 
-    // Validation simple de l'adresse email
     private boolean isValidEmail(String email) {
         String regex = "^[\\w.-]+@[\\w.-]+\\.[A-Za-z]{2,}$";
         Pattern pattern = Pattern.compile(regex);

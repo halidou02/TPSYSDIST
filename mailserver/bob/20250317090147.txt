@@ -1,0 +1,4 @@
+From: alice@example.com
+To: bob@example.com
+Subject: Test Email - Base
+Ceci est un email de test - sc�nario de base.

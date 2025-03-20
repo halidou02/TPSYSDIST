@@ -1,0 +1,5 @@
+From: sender8@example.com
+To: bob@example.com
+
+Subject: Test email 8
+Ceci est un email envoyé par le client SMTP 8.
