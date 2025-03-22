@@ -1,0 +1,5 @@
+From: alice@example.com
+To: bob@example.com, charlie@example.com
+
+Subject: Test Email - Multiple Recipients
+Ceci est un email destiné à plusieurs destinataires.

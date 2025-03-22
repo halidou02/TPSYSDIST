@@ -1,0 +1,5 @@
+From: alice@example.com
+To: bob@example.com
+
+Subject: Test Email - Interruption
+Ceci est un email partiellement envoyé.

@@ -1,5 +1,0 @@
-From: sender9@example.com
-To: charlie@example.com
-
-Subject: Test email 9
-Ceci est un email envoyé par le client SMTP 9.
