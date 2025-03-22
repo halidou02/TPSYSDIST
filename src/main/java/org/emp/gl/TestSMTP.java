@@ -17,7 +17,6 @@ public class TestSMTP {
         sleep(2000);
 
         // Exécution des tests
-
         System.out.println("Test 1 : Scénario de base");
         testBasicScenario();
         sleep(1000);
@@ -67,21 +66,44 @@ public class TestSMTP {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            System.out.println("Greeting: " + in.readLine());
-            out.println("HELO localhost");
-            System.out.println("Response: " + in.readLine());
-            out.println("MAIL FROM: alice@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("RCPT TO: bob@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("DATA");
-            System.out.println("Response: " + in.readLine());
-            out.println("Subject: Test Email - Base");
-            out.println("Ceci est un email de test - scénario de base.");
-            out.println(".");
-            System.out.println("Response: " + in.readLine());
-            out.println("QUIT");
-            System.out.println("Response: " + in.readLine());
+            // Afficher le message de bienvenue
+            System.out.println(in.readLine());
+
+            String cmd = "HELO localhost";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "MAIL FROM: alice@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "RCPT TO: bob@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "DATA";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "Subject: Test Email - Base";
+            System.out.println(cmd);
+            out.println(cmd);
+            cmd = "Ceci est un email de test - scénario de base.";
+            System.out.println(cmd);
+            out.println(cmd);
+            cmd = ".";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "QUIT";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -94,23 +116,48 @@ public class TestSMTP {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            System.out.println("Greeting: " + in.readLine());
-            out.println("HELO localhost");
-            System.out.println("Response: " + in.readLine());
-            out.println("MAIL FROM: alice@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("RCPT TO: bob@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("RCPT TO: charlie@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("DATA");
-            System.out.println("Response: " + in.readLine());
-            out.println("Subject: Test Email - Multiple Recipients");
-            out.println("Ceci est un email destiné à plusieurs destinataires.");
-            out.println(".");
-            System.out.println("Response: " + in.readLine());
-            out.println("QUIT");
-            System.out.println("Response: " + in.readLine());
+            System.out.println(in.readLine());
+
+            String cmd = "HELO localhost";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "MAIL FROM: alice@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "RCPT TO: bob@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "RCPT TO: charlie@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "DATA";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "Subject: Test Email - Multiple Recipients";
+            System.out.println(cmd);
+            out.println(cmd);
+            cmd = "Ceci est un email destiné à plusieurs destinataires.";
+            System.out.println(cmd);
+            out.println(cmd);
+            cmd = ".";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "QUIT";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -123,17 +170,30 @@ public class TestSMTP {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            System.out.println("Greeting: " + in.readLine());
-            out.println("HELO localhost");
-            System.out.println("Response: " + in.readLine());
-            // Envoi de DATA sans MAIL FROM et RCPT TO
-            out.println("DATA");
-            System.out.println("Response: " + in.readLine());
-            out.println("Ceci est un email qui ne devrait pas être accepté.");
-            out.println(".");
-            System.out.println("Response: " + in.readLine());
-            out.println("QUIT");
-            System.out.println("Response: " + in.readLine());
+            System.out.println(in.readLine());
+
+            String cmd = "HELO localhost";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "DATA";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "Ceci est un email qui ne devrait pas être accepté.";
+            System.out.println(cmd);
+            out.println(cmd);
+            cmd = ".";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "QUIT";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -147,18 +207,35 @@ public class TestSMTP {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
-            System.out.println("Greeting: " + in.readLine());
-            out.println("HELO localhost");
-            System.out.println("Response: " + in.readLine());
-            out.println("MAIL FROM: alice@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("RCPT TO: bob@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("DATA");
-            System.out.println("Response: " + in.readLine());
-            out.println("Subject: Test Email - Interruption");
-            out.println("Ceci est un email partiellement envoyé.");
-            // Simulation d'une interruption : fermeture de la connexion sans envoyer "."
+            System.out.println(in.readLine());
+
+            String cmd = "HELO localhost";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "MAIL FROM: alice@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "RCPT TO: bob@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "DATA";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "Subject: Test Email - Interruption";
+            System.out.println(cmd);
+            out.println(cmd);
+            cmd = "Ceci est un email partiellement envoyé.";
+            System.out.println(cmd);
+            out.println(cmd);
+            // Simulation d'interruption : on ferme la connexion sans envoyer "."
             socket.close();
             System.out.println("Connexion interrompue avant la fin du message.");
         } catch (IOException e) {
@@ -172,24 +249,48 @@ public class TestSMTP {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            System.out.println("Greeting: " + in.readLine());
-            out.println("HELO localhost");
-            System.out.println("Response: " + in.readLine());
-            out.println("MAIL FROM: alice@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("RCPT TO: bob@example.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("DATA");
-            System.out.println("Response: " + in.readLine());
-            out.println("Subject: Test Email - Large");
-            // Génération d'un email volumineux (ici 1000 lignes)
+            System.out.println(in.readLine());
+
+            String cmd = "HELO localhost";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "MAIL FROM: alice@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "RCPT TO: bob@example.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "DATA";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "Subject: Test Email - Large";
+            System.out.println(cmd);
+            out.println(cmd);
+            // Envoi d'un email volumineux (affichage périodique des commandes)
             for (int i = 0; i < 1000; i++) {
-                out.println("Ligne " + i + " de l'email volumineux.");
+                cmd = "Ligne " + i + " de l'email volumineux.";
+                if (i % 100 == 0) {
+                    System.out.println(cmd);
+                }
+                out.println(cmd);
             }
-            out.println(".");
-            System.out.println("Response: " + in.readLine());
-            out.println("QUIT");
-            System.out.println("Response: " + in.readLine());
+            cmd = ".";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "QUIT";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -202,14 +303,22 @@ public class TestSMTP {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            System.out.println("Greeting: " + in.readLine());
-            out.println("HELO localhost");
-            System.out.println("Response: " + in.readLine());
-            // Envoi d'un MAIL FROM avec une adresse invalide
-            out.println("MAIL FROM: aliceexample.com");
-            System.out.println("Response: " + in.readLine());
-            out.println("QUIT");
-            System.out.println("Response: " + in.readLine());
+            System.out.println(in.readLine());
+
+            String cmd = "HELO localhost";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "MAIL FROM: aliceexample.com";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
+
+            cmd = "QUIT";
+            System.out.println(cmd);
+            out.println(cmd);
+            System.out.println(in.readLine());
 
         } catch (IOException e) {
             e.printStackTrace();
