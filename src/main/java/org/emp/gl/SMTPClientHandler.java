@@ -1,10 +1,13 @@
 package org.emp.gl;
 
 import java.io.*;
+import java.net.Socket;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.*;
-import java.net.Socket;
+import org.emp.auth.AuthService;  // Assurez-vous d'importer le package du service RMI
 
 public class SMTPClientHandler implements Runnable {
     private Socket socket;
@@ -14,12 +17,20 @@ public class SMTPClientHandler implements Runnable {
     private String mailFrom;
     private List<String> recipients;
     private StringBuilder dataBuffer;
+    private AuthService authService; // Référence au service RMI
 
     public SMTPClientHandler(Socket socket) {
         this.socket = socket;
         this.state = SMTPState.START;
         this.recipients = new ArrayList<>();
         this.dataBuffer = new StringBuilder();
+        try {
+            // Connexion au registre RMI (sur localhost et port 1099 par défaut)
+            Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+            authService = (AuthService) registry.lookup("AuthService");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void run() {
@@ -46,6 +57,18 @@ public class SMTPClientHandler implements Runnable {
                             out.println("501 Syntax error in parameters or arguments");
                             continue;
                         }
+                        // Pour SMTP, on peut aussi vérifier que l'expéditeur est un utilisateur connu
+                        String user = sender.split("@")[0];
+                        try {
+                            if (!authService.userExists(user)) {
+                                out.println("550 No such user here");
+                                continue;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            out.println("451 Internal server error");
+                            continue;
+                        }
                         mailFrom = sender;
                         state = SMTPState.MAIL_FROM;
                         out.println("250 OK");
@@ -59,12 +82,19 @@ public class SMTPClientHandler implements Runnable {
                             out.println("501 Syntax error in parameters or arguments");
                             continue;
                         }
-                        if (checkUserExists(recipient)) {
-                            recipients.add(recipient);
-                            state = SMTPState.RCPT_TO_RECEIVED;
-                            out.println("250 OK");
-                        } else {
-                            out.println("550 No such user here");
+                        // Vérification via le service RMI
+                        String user = recipient.split("@")[0];
+                        try {
+                            if (authService.userExists(user)) {
+                                recipients.add(recipient);
+                                state = SMTPState.RCPT_TO_RECEIVED;
+                                out.println("250 OK");
+                            } else {
+                                out.println("550 No such user here");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            out.println("451 Internal server error");
                         }
                     } else {
                         out.println("503 Bad sequence of commands");
@@ -103,12 +133,6 @@ public class SMTPClientHandler implements Runnable {
         }
     }
 
-    private boolean checkUserExists(String email) {
-        String user = email.split("@")[0];
-        File userDir = new File("mailserver/" + user);
-        return userDir.exists() && userDir.isDirectory();
-    }
-
     private void saveEmail(String mailFrom, List<String> recipients, String data) {
         String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         for (String recipient : recipients) {
@@ -131,7 +155,6 @@ public class SMTPClientHandler implements Runnable {
 
     private boolean isValidEmail(String email) {
         String regex = "^[\\w.-]+@[\\w.-]+\\.[A-Za-z]{2,}$";
-        Pattern pattern = Pattern.compile(regex);
-        return pattern.matcher(email).matches();
+        return email.matches(regex);
     }
 }
