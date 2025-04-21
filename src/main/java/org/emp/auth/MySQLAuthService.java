@@ -23,19 +23,23 @@ public class MySQLAuthService extends UnicastRemoteObject implements AuthService
     @Override
     public boolean authenticate(String username, String password) throws RemoteException {
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
-            String sql = "SELECT password FROM users WHERE username = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, username);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    String storedPassword = rs.getString("password");
-                    return storedPassword.equals(password);
-                }
+            // Appel de la procédure stockée authenticate_user
+            String sql = "{CALL authenticate_user(?, ?, ?)}";
+            try (CallableStatement cstmt = conn.prepareCall(sql)) {
+                cstmt.setString(1, username);
+                cstmt.setString(2, password);
+                cstmt.registerOutParameter(3, Types.INTEGER); // Enregistrer le paramètre de sortie
+
+                cstmt.execute();
+
+                int isAuthenticated = cstmt.getInt(3); // Récupérer la valeur de sortie
+                return isAuthenticated == 1;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("SQL Error during authentication for user: " + username);
+            e.printStackTrace(); // Log l'erreur
         }
-        return false;
+        return false; // Retourne faux en cas d'erreur SQL
     }
 
     @Override

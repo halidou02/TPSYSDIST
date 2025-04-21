@@ -35,6 +35,11 @@ public class MySQLProcedureService {
     // Création d'utilisateur via la procédure stockée create_user
     public static boolean createUser(String username, String password) {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE PROCEDURE IF NOT EXISTS create_user(IN user VARCHAR(50), IN pass VARCHAR(50)) "
+                + "BEGIN "
+                + "INSERT INTO users (username, password) VALUES (user, pass); "
+                + "END");
             CallableStatement cstmt = conn.prepareCall("{CALL create_user(?, ?)}");
             cstmt.setString(1, username);
             cstmt.setString(2, password);

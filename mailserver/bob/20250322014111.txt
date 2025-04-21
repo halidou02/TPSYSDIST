@@ -1,5 +1,0 @@
-From: sender0@example.com
-To: bob@example.com
-
-Subject: Test Email - 0
-This is a test email from SMTP client 0.
